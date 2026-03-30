@@ -5,13 +5,12 @@ from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.units import mm  
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Bật chế độ Wide để tận dụng tối đa màn hình
-st.set_page_config(page_title="Xuất PDF", page_icon="📄", layout="wide")
+st.set_page_config(page_title="XUẤT PDF", page_icon="📄", layout="wide")
 
-# 1. Thu nhỏ Tiêu đề cho gọn
-st.markdown("### 📄 Gửi YCNT (cần đổi mẫuLH:Bien 0903585579")
+st.markdown("### 📄 App gửi YCNT(đổi mẫuLH Bien 0903585579")
 
 # Khởi tạo bộ nhớ tạm
 if 'stt_num' not in st.session_state:
@@ -20,11 +19,9 @@ if 'pdf_xuat' not in st.session_state:
     st.session_state.pdf_xuat = None
 if 'ten_file_pdf' not in st.session_state:
     st.session_state.ten_file_pdf = "YCNT.pdf"
-# Thêm biến lưu lịch sử
 if 'lich_su' not in st.session_state:
     st.session_state.lich_su = []
 
-# 2. Fix lỗi hiển thị PDF (Dùng thẻ embed để vượt tường lửa trình duyệt)
 def hien_thi_pdf(pdf_bytes):
     base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
     pdf_display = f'<embed src="data:application/pdf;base64,{base64_pdf}" width="100%" height="800" type="application/pdf">'
@@ -72,9 +69,6 @@ def create_final_pdf(d):
                 
         return y / mm
 
-    # =========================================================
-    # TỌA ĐỘ VÀNG CỦA ÔNG (GIỮ NGUYÊN 100%)
-    # =========================================================
     in_chu_mm(x_mm=163.0, y_mm=242.5, text=d['stt'], max_width_mm=40) 
     in_chu_mm(x_mm=148.0, y_mm=228, text=d['nl'], max_width_mm=40)  
     so_tt_ngan = d['stt'].split('/')[0] if '/' in d['stt'] else d['stt']
@@ -105,7 +99,6 @@ def create_final_pdf(d):
     output.write(pdf_bytes)
     return pdf_bytes.getvalue()
 
-# --- CHIA ĐÔI MÀN HÌNH (Trái Nhập - Phải Xem) ---
 col_nhap, col_xem = st.columns([1.2, 1])
 
 with col_nhap:
@@ -125,9 +118,19 @@ with col_nhap:
                 if ":" in p:
                     k, v = p.split(":", 1)
                     k, v = k.strip(), v.strip()
-                    if "Ngày NT" in k: data["nnt"] = v
+                    if "Ngày NT" in k: 
+                        data["nnt"] = v
+                        # --- THUẬT TOÁN TỰ ĐỘNG LÙI 1 NGÀY Ở ĐÂY ---
+                        try:
+                            # Chống lỗi khi gõ dấu gạch ngang hoặc dấu chấm
+                            v_clean = v.replace('-', '/').replace('.', '/')
+                            dt_nnt = datetime.strptime(v_clean, "%d/%m/%Y")
+                            data["nl"] = (dt_nnt - timedelta(days=1)).strftime("%d/%m/%Y")
+                        except ValueError:
+                            pass # Nếu gõ bậy bạ không ra ngày thì giữ nguyên ngày hiện tại
                     elif "Giờ NT" in k: data["gnt"] = v
                     elif "Địa điểm NT" in k: data["vt"] = v
+                    elif "Vị trí" in k: data["vt"] = v
                     elif "Nội dung NT" in k: data["nd"] = v
                     elif "CHT" in k: data["ch"] = v
                     elif "KT" in k: data["ktnt"] = v
@@ -150,7 +153,7 @@ with col_nhap:
         ch = st.text_input("Chỉ huy trưởng", value=data["ch"])
 
     with c2:
-        nl = st.text_input("Ngày lập", value=data["nl"])
+        nl = st.text_input("Ngày lập (Tự lùi 1 ngày)", value=data["nl"]) # Note nhẹ để ông biết nó hoạt động
         nnt = st.text_input("Ngày NT", value=data["nnt"])
         ktnt = st.text_input("Kỹ thuật - SĐT", value=data["ktnt"])
 
@@ -159,7 +162,6 @@ with col_nhap:
 
     st.markdown("---")
     
-    # Nút bấm trung tâm
     if st.button("🔥 XUẤT PDF & XEM TRƯỚC", use_container_width=True, type="primary"):
         final_data = {
             "stt": stt, "nl": nl, "gnt": gnt, "nnt": nnt, 
@@ -168,21 +170,15 @@ with col_nhap:
         pdf_out = create_final_pdf(final_data)
         if pdf_out:
             st.session_state.pdf_xuat = pdf_out
-            
-            # 3. Lấy số phiếu thực tế từ ô text để đặt tên file chuẩn
             so_phieu_thuc_te = stt.split('/')[0] if '/' in stt else stt
             st.session_state.ten_file_pdf = f"YCNT_{so_phieu_thuc_te}.pdf"
-            
-            # 4. Lưu dữ liệu vào lịch sử
             st.session_state.lich_su.insert(0, {"stt": so_phieu_thuc_te, "ngay": nnt, "nd": nd})
-            
-            st.success("✅ Đã tạo xong! Xem trước ở bên cạnh nhé 👉")
+            st.success("✅ Đã tạo xong! Xem trước bên dưới")
         else:
             st.error("❌ Thiếu file Mau_YCNT.pdf trong thư mục GitHub!")
             
-    # 4. Hiển thị Lịch sử có thanh trượt cuộn
     st.markdown("### 🕒 NHẬT KÝ ĐÃ GỬI")
-    with st.container(height=300): # Khung scroll cao 300px
+    with st.container(height=300):
         if len(st.session_state.lich_su) == 0:
             st.caption("Chưa xuất phiếu nào...")
         else:
@@ -194,7 +190,6 @@ with col_nhap:
 with col_xem:
     st.markdown("### 👁️ XEM TRƯỚC PDF")
     if st.session_state.pdf_xuat:
-        # Nút Tải xuống đã được cập nhật Tên file chuẩn
         st.download_button(
             label=f"📥 TẢI XUỐNG {st.session_state.ten_file_pdf}",
             data=st.session_state.pdf_xuat,
@@ -203,13 +198,11 @@ with col_xem:
             use_container_width=True
         )
         
-        # Nút dọn dẹp để làm phiếu tiếp theo
         if st.button("🔄 CHUYỂN SANG PHIẾU TIẾP THEO", use_container_width=True):
             st.session_state.stt_num += 1
             st.session_state.pdf_xuat = None
             st.rerun()
             
-        # Khung hiển thị PDF trực tiếp
         st.markdown("<br>", unsafe_allow_html=True)
         hien_thi_pdf(st.session_state.pdf_xuat)
     else:
