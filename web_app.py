@@ -25,7 +25,7 @@ if 'lich_su_full' not in st.session_state:
     st.session_state.lich_su_full = []
 
 # ==========================================
-# --- HÀM XỬ LÝ DỮ LIỆU CHUẨN CỘT ---
+# --- 2 HÀM XỬ LÝ DỮ LIỆU ---
 # ==========================================
 def tao_file_excel():
     output = io.StringIO()
@@ -40,26 +40,19 @@ def ghi_len_google_sheets(url_sheet, data_row):
         import gspread
         from google.oauth2.service_account import Credentials
         if "gcp_service_account" not in st.secrets:
-            return False, "Chưa cài mã API Google trong Secrets."
-        
+            return False, "Chưa cài mã API Google trong phần Secrets của Streamlit."
         credentials_dict = dict(st.secrets["gcp_service_account"])
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = Credentials.from_service_account_info(credentials_dict, scopes=scopes)
         client = gspread.authorize(creds)
-        
         sheet = client.open_by_url(url_sheet).sheet1
         
-        # Tự động tạo tiêu đề nếu sheet trống
-        if not sheet.get_all_values():
-            header = ['Số Phiếu', 'Ngày Lập', 'Giờ NT', 'Ngày NT', 'Nội dung', 'Vị trí', 'Chỉ huy trưởng', 'Kỹ thuật']
-            sheet.append_row(header)
-            
-        sheet.append_row(data_row)
+        # --- SỬA TẠI ĐÂY: Đảm bảo data_row là list và ghi đúng hàng ---
+        sheet.append_row(data_row, value_input_option='RAW')
         return True, "Đồng bộ thành công!"
     except Exception as e:
-        return False, f"Lỗi: {str(e)}"
+        return False, f"Lỗi Google Sheets: {str(e)}"
 
-# --- CÁC HÀM PDF (GIỮ NGUYÊN LOGIC) ---
 def hien_thi_pdf(pdf_bytes):
     base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
     pdf_display = f'<embed src="data:application/pdf;base64,{base64_pdf}" width="100%" height="800" type="application/pdf">'
@@ -68,6 +61,7 @@ def hien_thi_pdf(pdf_bytes):
 def create_final_pdf(d):
     packet = io.BytesIO()
     can = canvas.Canvas(packet)
+    
     font_name = 'Helvetica'
     if os.path.exists("Arial.ttf"):
         pdfmetrics.registerFont(TTFont('Arial-VN', 'Arial.ttf'))
@@ -76,42 +70,52 @@ def create_final_pdf(d):
     def in_chu_mm(x_mm, y_mm, text, max_width_mm, font_size=11, khoang_cach_dong_mm=5.0):
         if not text: return y_mm 
         can.setFont(font_name, font_size)
-        y, x = y_mm * mm, x_mm * mm
-        max_w, kc = max_width_mm * mm, khoang_cach_dong_mm * mm
-        for doan in str(text).split('\n'):
-            dong = ""
-            for tu in doan.split(' '):
-                if pdfmetrics.stringWidth(dong + tu + " ", font_name, font_size) <= max_w:
-                    dong += tu + " "
-                else:
-                    can.drawString(x, y, dong.strip())
-                    y -= kc
-                    dong = tu + " "
-            can.drawString(x, y, dong.strip())
-            y -= kc
+        y = y_mm * mm
+        x = x_mm * mm
+        max_width = max_width_mm * mm
+        khoang_cach_dong = khoang_cach_dong_mm * mm
+        cac_doan = str(text).split('\n') 
+        for doan in cac_doan:
+            tu_ngu = doan.split(' ') 
+            dong_hien_tai = ""
+            for tu in tu_ngu:
+                test_line = dong_hien_tai + tu + " "
+                do_rong = pdfmetrics.stringWidth(test_line, font_name, font_size)
+                if do_rong <= max_width: 
+                    dong_hien_tai = test_line
+                else: 
+                    if dong_hien_tai.strip():
+                        can.drawString(x, y, dong_hien_tai.strip())
+                        y -= khoang_cach_dong
+                    dong_hien_tai = tu + " "
+            if dong_hien_tai.strip():
+                can.drawString(x, y, dong_hien_tai.strip())
+                y -= khoang_cach_dong
         return y / mm
 
-    in_chu_mm(163.0, 242.5, d['stt'], 40)
-    in_chu_mm(148.0, 228, d['nl'], 40)
-    in_chu_mm(22.0, 204.0, d['stt'].split('/')[0], 15)
-    y_nd = in_chu_mm(35.0, 212.0, d['nd'], 72)
-    in_chu_mm(35.0, y_nd - 1.0, f" {d['vt']}", 72)
-    in_chu_mm(116.0, 212.0, d['gnt'], 15)
-    in_chu_mm(112.0, 200.0, d['nnt'], 15)
-    in_chu_mm(137.0, 212.0, d['ktnt'], 35)
-    in_chu_mm(130.0, 152.0, d['ch'], 50, 12)
+    in_chu_mm(x_mm=163.0, y_mm=242.5, text=d['stt'], max_width_mm=40) 
+    in_chu_mm(x_mm=148.0, y_mm=228, text=d['nl'], max_width_mm=40)  
+    so_tt_ngan = d['stt'].split('/')[0] if '/' in d['stt'] else d['stt']
+    in_chu_mm(x_mm=22.0, y_mm=204.0, text=so_tt_ngan, max_width_mm=15) 
+    y_sau_noi_dung = in_chu_mm(x_mm=35.0, y_mm=212.0, text=d['nd'], max_width_mm=72) 
+    in_chu_mm(x_mm=35.0, y_mm=y_sau_noi_dung - 1.0, text=f" {d['vt']}", max_width_mm=72) 
+    in_chu_mm(x_mm=116.0, y_mm=212.0, text=d['gnt'], max_width_mm=15) 
+    in_chu_mm(x_mm=112.0, y_mm=200.0, text=d['nnt'], max_width_mm=15) 
+    in_chu_mm(x_mm=137.0, y_mm=212.0, text=d['ktnt'], max_width_mm=35) 
+    in_chu_mm(x_mm=130.0, y_mm=152.0, text=d['ch'], max_width_mm=50, font_size=12) 
 
     can.save()
     packet.seek(0)
     if not os.path.exists("Mau_YCNT.pdf"): return None
-    reader = PdfReader(open("Mau_YCNT.pdf", "rb"))
-    writer = PdfWriter()
-    page = reader.pages[0]
+    existing_pdf = PdfReader(open("Mau_YCNT.pdf", "rb"))
+    output = PdfWriter()
+    page = existing_pdf.pages[0]
     page.merge_page(PdfReader(packet).pages[0])
-    writer.add_page(page)
-    for i in range(1, len(reader.pages)): writer.add_page(reader.pages[i])
+    output.add_page(page)
+    for i in range(1, len(existing_pdf.pages)):
+        output.add_page(existing_pdf.pages[i])
     pdf_bytes = io.BytesIO()
-    writer.write(pdf_bytes)
+    output.write(pdf_bytes)
     return pdf_bytes.getvalue()
 
 col_nhap, col_xem = st.columns([1.2, 1])
@@ -124,16 +128,18 @@ with col_nhap:
 
     if fast_txt:
         try:
-            for p in fast_txt.split(";"):
+            parts = fast_txt.split(";")
+            for p in parts:
                 if ":" in p:
-                    k, v = [i.strip() for i in p.split(":", 1)]
+                    k, v = p.split(":", 1)
+                    k, v = k.strip(), v.strip()
                     if "Ngày NT" in k: 
                         data["nnt"] = v
                         try:
                             v_clean = v.replace('-', '/').replace('.', '/')
                             dt_nnt = datetime.strptime(v_clean, "%d/%m/%Y")
                             data["nl"] = (dt_nnt - timedelta(days=1)).strftime("%d/%m/%Y")
-                        except: pass
+                        except ValueError: pass
                     elif "Giờ NT" in k: data["gnt"] = v
                     elif "Địa điểm NT" in k or "Vị trí" in k: data["vt"] = v
                     elif "Nội dung NT" in k: data["nd"] = v
@@ -164,35 +170,55 @@ with col_nhap:
     nd = st.text_area("Nội dung", value=data["nd"], height=80)
     vt = st.text_area("Vị trí", value=data["vt"], height=80)
 
-    # --- GHIM LINK CỐ ĐỊNH ---
-    with st.expander("⚙️ TÍCH HỢP GOOGLE SHEETS", expanded=True):
+    with st.expander("⚙️ TÍCH HỢP GOOGLE SHEETS (ĐÃ GHIM)", expanded=False):
         bat_gsheets = st.checkbox("Bật tự động lưu lên Google Sheets", value=True)
         link_co_dinh = "https://docs.google.com/spreadsheets/d/1r7SJ64Ht5Tnrg3mmiq0eSYhX7OhKNaD7kN1KJOoFtuQ/edit?gid=0#gid=0"
         link_gsheets = st.text_input("Link Google Sheets:", value=link_co_dinh)
 
     st.markdown("---")
     
-    if st.button("🔥 XUẤT PDF & LƯU SHEETS", use_container_width=True, type="primary"):
-        f_data = {"stt": stt, "nl": nl, "gnt": gnt, "nnt": nnt, "nd": nd, "vt": vt, "ch": ch, "ktnt": ktnt}
-        pdf_out = create_final_pdf(f_data)
+    if st.button("🔥 XUẤT PDF & XEM TRƯỚC", use_container_width=True, type="primary"):
+        final_data = {"stt": stt, "nl": nl, "gnt": gnt, "nnt": nnt, "nd": nd, "vt": vt, "ch": ch, "ktnt": ktnt}
+        pdf_out = create_final_pdf(final_data)
         if pdf_out:
             st.session_state.pdf_xuat = pdf_out
-            st.session_state.lich_su_full.append(f_data)
+            so_phieu_thuc_te = stt.split('/')[0] if '/' in stt else stt
+            st.session_state.ten_file_pdf = f"YCNT_{so_phieu_thuc_te}.pdf"
+            st.session_state.lich_su.insert(0, {"stt": so_phieu_thuc_te, "ngay": nnt, "nd": nd})
+            st.session_state.lich_su_full.append(final_data)
+            
             msg_gsheets = ""
             if bat_gsheets and link_gsheets:
-                # Sắp xếp đúng thứ tự các cột A, B, C, D...
-                row = [stt, nl, gnt, nnt, nd, vt, ch, ktnt]
-                ok, res = ghi_len_google_sheets(link_gsheets, row)
-                msg_gsheets = f" - ☁️ {res}" if ok else f" - ⚠️ {res}"
+                # --- SỬA TẠI ĐÂY: Tạo row chuẩn danh sách ---
+                row_data = [stt, nl, gnt, nnt, nd, vt, ch, ktnt]
+                ok, msg = ghi_len_google_sheets(link_gsheets, row_data)
+                if ok: msg_gsheets = f" - ☁️ {msg}"
+                else: st.warning(f"⚠️ {msg}")
+            
             st.success(f"✅ Đã tạo xong!{msg_gsheets}")
-        else: st.error("❌ Thiếu file Mau_YCNT.pdf!")
+        else:
+            st.error("❌ Thiếu file Mau_YCNT.pdf trong thư mục GitHub!")
+            
+    st.markdown("### 🕒 NHẬT KÝ ĐÃ GỬI")
+    if len(st.session_state.lich_su_full) > 0:
+        st.download_button(label="📥 TẢI FILE EXCEL LỊCH SỬ (CSV)", data=tao_file_excel().encode('utf-8'), file_name=f"LichSu_YCNT_{datetime.now().strftime('%d%m%Y')}.csv", mime="text/csv", use_container_width=True)
+
+    with st.container(height=300):
+        if len(st.session_state.lich_su) == 0: st.caption("Chưa xuất phiếu nào...")
+        else:
+            for item in st.session_state.lich_su:
+                st.markdown(f"**Phiếu {item['stt']}** - {item['ngay']}")
+                st.caption(f"{item['nd']}")
+                st.divider()
 
 with col_xem:
     st.markdown("### 👁️ XEM TRƯỚC PDF")
     if st.session_state.pdf_xuat:
-        st.download_button(label=f"📥 TẢI PDF {stt.split('/')[0]}", data=st.session_state.pdf_xuat, file_name=f"YCNT_{stt.split('/')[0]}.pdf", mime="application/pdf", use_container_width=True)
-        if st.button("🔄 PHIẾU TIẾP THEO", use_container_width=True):
+        st.download_button(label=f"📥 TẢI XUỐNG {st.session_state.ten_file_pdf}", data=st.session_state.pdf_xuat, file_name=st.session_state.ten_file_pdf, mime="application/pdf", use_container_width=True)
+        if st.button("🔄 CHUYỂN SANG PHIẾU TIẾP THEO", use_container_width=True):
             st.session_state.stt_num += 1
             st.session_state.pdf_xuat = None
             st.rerun()
+        st.markdown("<br>", unsafe_allow_html=True)
         hien_thi_pdf(st.session_state.pdf_xuat)
+    else: st.info("Bấm 'Xuất PDF & Xem trước' để hiển thị nội dung tại đây.")
