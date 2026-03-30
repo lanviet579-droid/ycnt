@@ -21,12 +21,11 @@ if 'ten_file_pdf' not in st.session_state:
     st.session_state.ten_file_pdf = "YCNT.pdf"
 if 'lich_su' not in st.session_state:
     st.session_state.lich_su = []
-# --- BẢN CẤY THÊM: Lưu full dữ liệu để xuất Excel ---
 if 'lich_su_full' not in st.session_state:
     st.session_state.lich_su_full = []
 
 # ==========================================
-# --- 2 HÀM MỚI CẤY THÊM VÀO ĐỂ LÀM NHIỆM VỤ ---
+# --- 2 HÀM XỬ LÝ DỮ LIỆU ---
 # ==========================================
 def tao_file_excel():
     output = io.StringIO()
@@ -51,7 +50,6 @@ def ghi_len_google_sheets(url_sheet, data_row):
         return True, "Đồng bộ thành công!"
     except Exception as e:
         return False, f"Lỗi Google Sheets: {str(e)}"
-# ==========================================
 
 def hien_thi_pdf(pdf_bytes):
     base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
@@ -70,22 +68,17 @@ def create_final_pdf(d):
     def in_chu_mm(x_mm, y_mm, text, max_width_mm, font_size=11, khoang_cach_dong_mm=5.0):
         if not text: return y_mm 
         can.setFont(font_name, font_size)
-        
         y = y_mm * mm
         x = x_mm * mm
         max_width = max_width_mm * mm
         khoang_cach_dong = khoang_cach_dong_mm * mm
-        
         cac_doan = str(text).split('\n') 
-        
         for doan in cac_doan:
             tu_ngu = doan.split(' ') 
             dong_hien_tai = ""
-            
             for tu in tu_ngu:
                 test_line = dong_hien_tai + tu + " "
                 do_rong = pdfmetrics.stringWidth(test_line, font_name, font_size)
-                
                 if do_rong <= max_width: 
                     dong_hien_tai = test_line
                 else: 
@@ -93,11 +86,9 @@ def create_final_pdf(d):
                         can.drawString(x, y, dong_hien_tai.strip())
                         y -= khoang_cach_dong
                     dong_hien_tai = tu + " "
-            
             if dong_hien_tai.strip():
                 can.drawString(x, y, dong_hien_tai.strip())
                 y -= khoang_cach_dong
-                
         return y / mm
 
     in_chu_mm(x_mm=163.0, y_mm=242.5, text=d['stt'], max_width_mm=40) 
@@ -113,19 +104,14 @@ def create_final_pdf(d):
 
     can.save()
     packet.seek(0)
-    
     if not os.path.exists("Mau_YCNT.pdf"): return None
-    
     existing_pdf = PdfReader(open("Mau_YCNT.pdf", "rb"))
     output = PdfWriter()
-    
     page = existing_pdf.pages[0]
     page.merge_page(PdfReader(packet).pages[0])
     output.add_page(page)
-    
     for i in range(1, len(existing_pdf.pages)):
         output.add_page(existing_pdf.pages[i])
-
     pdf_bytes = io.BytesIO()
     output.write(pdf_bytes)
     return pdf_bytes.getvalue()
@@ -136,11 +122,7 @@ with col_nhap:
     with st.expander("⚡ NHẬP NHANH TỪ ZALO", expanded=False):
         fast_txt = st.text_area("📋 Dán nội dung Zalo vào đây:", height=100, label_visibility="collapsed")
 
-    data = {
-        "nl": datetime.now().strftime("%d/%m/%Y"), 
-        "gnt": "08:30", "nnt": "", "nd": "", "vt": "", 
-        "ch": "Nguyễn Hữu Biên", "ktnt": "Nguyễn Văn A"
-    }
+    data = {"nl": datetime.now().strftime("%d/%m/%Y"), "gnt": "08:30", "nnt": "", "nd": "", "vt": "", "ch": "Nguyễn Hữu Biên", "ktnt": "Nguyễn Văn A"}
 
     if fast_txt:
         try:
@@ -151,14 +133,11 @@ with col_nhap:
                     k, v = k.strip(), v.strip()
                     if "Ngày NT" in k: 
                         data["nnt"] = v
-                        # --- THUẬT TOÁN TỰ ĐỘNG LÙI 1 NGÀY Ở ĐÂY ---
                         try:
-                            # Chống lỗi khi gõ dấu gạch ngang hoặc dấu chấm
                             v_clean = v.replace('-', '/').replace('.', '/')
                             dt_nnt = datetime.strptime(v_clean, "%d/%m/%Y")
                             data["nl"] = (dt_nnt - timedelta(days=1)).strftime("%d/%m/%Y")
-                        except ValueError:
-                            pass # Nếu gõ bậy bạ không ra ngày thì giữ nguyên ngày hiện tại
+                        except ValueError: pass
                     elif "Giờ NT" in k: data["gnt"] = v
                     elif "Địa điểm NT" in k: data["vt"] = v
                     elif "Vị trí" in k: data["vt"] = v
@@ -179,70 +158,52 @@ with col_nhap:
         with c_so:
             stt_str = f"{st.session_state.stt_num:02d}/Dacinco/ĐNCNC" 
             stt = st.text_input("STT", value=stt_str, label_visibility="collapsed")
-            
         gnt = st.text_input("Giờ NT", value=data["gnt"])
         ch = st.text_input("Chỉ huy trưởng", value=data["ch"])
 
     with c2:
-        nl = st.text_input("Ngày lập (Tự lùi 1 ngày)", value=data["nl"]) # Note nhẹ để ông biết nó hoạt động
+        nl = st.text_input("Ngày lập (Tự lùi 1 ngày)", value=data["nl"])
         nnt = st.text_input("Ngày NT", value=data["nnt"])
         ktnt = st.text_input("Kỹ thuật - SĐT", value=data["ktnt"])
 
     nd = st.text_area("Nội dung", value=data["nd"], height=80)
     vt = st.text_area("Vị trí", value=data["vt"], height=80)
 
-    # --- BẢN CẤY THÊM: Khung thiết lập Google Sheets ---
-    with st.expander("⚙️ TÍCH HỢP GOOGLE SHEETS (Tùy chọn)", expanded=False):
-        bat_gsheets = st.checkbox("Bật tự động lưu lên Google Sheets", value=False)
-        link_gsheets = st.text_input("Dán Link Google Sheets của bạn vào đây:")
+    # --- BẢN GHIM CỨNG LINK GOOGLE SHEETS ---
+    with st.expander("⚙️ TÍCH HỢP GOOGLE SHEETS (ĐÃ GHIM)", expanded=False):
+        bat_gsheets = st.checkbox("Bật tự động lưu lên Google Sheets", value=True) # Mặc định BẬT
+        link_co_dinh = "https://docs.google.com/spreadsheets/d/1r7SJ64Ht5Tnrg3mmiq0eSYhX7OhKNaD7kN1KJOoFtuQ/edit?gid=0#gid=0"
+        link_gsheets = st.text_input("Link Google Sheets:", value=link_co_dinh)
 
     st.markdown("---")
     
     if st.button("🔥 XUẤT PDF & XEM TRƯỚC", use_container_width=True, type="primary"):
-        final_data = {
-            "stt": stt, "nl": nl, "gnt": gnt, "nnt": nnt, 
-            "nd": nd, "vt": vt, "ch": ch, "ktnt": ktnt
-        }
+        final_data = {"stt": stt, "nl": nl, "gnt": gnt, "nnt": nnt, "nd": nd, "vt": vt, "ch": ch, "ktnt": ktnt}
         pdf_out = create_final_pdf(final_data)
         if pdf_out:
             st.session_state.pdf_xuat = pdf_out
             so_phieu_thuc_te = stt.split('/')[0] if '/' in stt else stt
             st.session_state.ten_file_pdf = f"YCNT_{so_phieu_thuc_te}.pdf"
             st.session_state.lich_su.insert(0, {"stt": so_phieu_thuc_te, "ngay": nnt, "nd": nd})
-            
-            # --- BẢN CẤY THÊM: Xử lý lưu lịch sử Full và Bắn Google Sheets ---
             st.session_state.lich_su_full.append(final_data)
             
             msg_gsheets = ""
             if bat_gsheets and link_gsheets:
                 row_data = [so_phieu_thuc_te, nl, gnt, nnt, nd, vt, ch, ktnt]
                 ok, msg = ghi_len_google_sheets(link_gsheets, row_data)
-                if ok:
-                    msg_gsheets = f" - ☁️ {msg}"
-                else:
-                    st.warning(f"⚠️ {msg}")
-            # ---------------------------------------------------------------
+                if ok: msg_gsheets = f" - ☁️ {msg}"
+                else: st.warning(f"⚠️ {msg}")
             
-            st.success(f"✅ Đã tạo xong! Xem trước bên dưới.{msg_gsheets}")
+            st.success(f"✅ Đã tạo xong!{msg_gsheets}")
         else:
             st.error("❌ Thiếu file Mau_YCNT.pdf trong thư mục GitHub!")
             
     st.markdown("### 🕒 NHẬT KÝ ĐÃ GỬI")
-    
-    # --- BẢN CẤY THÊM: Nút tải file CSV hiện ra nếu có dữ liệu ---
     if len(st.session_state.lich_su_full) > 0:
-        st.download_button(
-            label="📥 TẢI FILE EXCEL LỊCH SỬ (CSV)",
-            data=tao_file_excel().encode('utf-8'),
-            file_name=f"LichSu_YCNT_{datetime.now().strftime('%d%m%Y')}.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-    # -------------------------------------------------------------
+        st.download_button(label="📥 TẢI FILE EXCEL LỊCH SỬ (CSV)", data=tao_file_excel().encode('utf-8'), file_name=f"LichSu_YCNT_{datetime.now().strftime('%d%m%Y')}.csv", mime="text/csv", use_container_width=True)
 
     with st.container(height=300):
-        if len(st.session_state.lich_su) == 0:
-            st.caption("Chưa xuất phiếu nào...")
+        if len(st.session_state.lich_su) == 0: st.caption("Chưa xuất phiếu nào...")
         else:
             for item in st.session_state.lich_su:
                 st.markdown(f"**Phiếu {item['stt']}** - {item['ngay']}")
@@ -252,20 +213,11 @@ with col_nhap:
 with col_xem:
     st.markdown("### 👁️ XEM TRƯỚC PDF")
     if st.session_state.pdf_xuat:
-        st.download_button(
-            label=f"📥 TẢI XUỐNG {st.session_state.ten_file_pdf}",
-            data=st.session_state.pdf_xuat,
-            file_name=st.session_state.ten_file_pdf,
-            mime="application/pdf",
-            use_container_width=True
-        )
-        
+        st.download_button(label=f"📥 TẢI XUỐNG {st.session_state.ten_file_pdf}", data=st.session_state.pdf_xuat, file_name=st.session_state.ten_file_pdf, mime="application/pdf", use_container_width=True)
         if st.button("🔄 CHUYỂN SANG PHIẾU TIẾP THEO", use_container_width=True):
             st.session_state.stt_num += 1
             st.session_state.pdf_xuat = None
             st.rerun()
-            
         st.markdown("<br>", unsafe_allow_html=True)
         hien_thi_pdf(st.session_state.pdf_xuat)
-    else:
-        st.info("Bấm 'Xuất PDF & Xem trước' để hiển thị nội dung tại đây.")
+    else: st.info("Bấm 'Xuất PDF & Xem trước' để hiển thị nội dung tại đây.")
