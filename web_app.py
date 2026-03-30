@@ -1,5 +1,5 @@
 import streamlit as st
-import io, os, base64
+import io, os, base64, csv
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
@@ -21,6 +21,37 @@ if 'ten_file_pdf' not in st.session_state:
     st.session_state.ten_file_pdf = "YCNT.pdf"
 if 'lich_su' not in st.session_state:
     st.session_state.lich_su = []
+# --- BẢN CẤY THÊM: Lưu full dữ liệu để xuất Excel ---
+if 'lich_su_full' not in st.session_state:
+    st.session_state.lich_su_full = []
+
+# ==========================================
+# --- 2 HÀM MỚI CẤY THÊM VÀO ĐỂ LÀM NHIỆM VỤ ---
+# ==========================================
+def tao_file_excel():
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Số Phiếu', 'Ngày Lập', 'Giờ NT', 'Ngày NT', 'Nội dung', 'Vị trí', 'Chỉ huy trưởng', 'Kỹ thuật'])
+    for item in reversed(st.session_state.lich_su_full):
+        writer.writerow([item['stt'], item['nl'], item['gnt'], item['nnt'], item['nd'], item['vt'], item['ch'], item['ktnt']])
+    return '\ufeff' + output.getvalue()
+
+def ghi_len_google_sheets(url_sheet, data_row):
+    try:
+        import gspread
+        from google.oauth2.service_account import Credentials
+        if "gcp_service_account" not in st.secrets:
+            return False, "Chưa cài mã API Google trong phần Secrets của Streamlit."
+        credentials_dict = dict(st.secrets["gcp_service_account"])
+        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        creds = Credentials.from_service_account_info(credentials_dict, scopes=scopes)
+        client = gspread.authorize(creds)
+        sheet = client.open_by_url(url_sheet).sheet1
+        sheet.append_row(data_row)
+        return True, "Đồng bộ thành công!"
+    except Exception as e:
+        return False, f"Lỗi Google Sheets: {str(e)}"
+# ==========================================
 
 def hien_thi_pdf(pdf_bytes):
     base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
@@ -160,6 +191,11 @@ with col_nhap:
     nd = st.text_area("Nội dung", value=data["nd"], height=80)
     vt = st.text_area("Vị trí", value=data["vt"], height=80)
 
+    # --- BẢN CẤY THÊM: Khung thiết lập Google Sheets ---
+    with st.expander("⚙️ TÍCH HỢP GOOGLE SHEETS (Tùy chọn)", expanded=False):
+        bat_gsheets = st.checkbox("Bật tự động lưu lên Google Sheets", value=False)
+        link_gsheets = st.text_input("Dán Link Google Sheets của bạn vào đây:")
+
     st.markdown("---")
     
     if st.button("🔥 XUẤT PDF & XEM TRƯỚC", use_container_width=True, type="primary"):
@@ -173,11 +209,37 @@ with col_nhap:
             so_phieu_thuc_te = stt.split('/')[0] if '/' in stt else stt
             st.session_state.ten_file_pdf = f"YCNT_{so_phieu_thuc_te}.pdf"
             st.session_state.lich_su.insert(0, {"stt": so_phieu_thuc_te, "ngay": nnt, "nd": nd})
-            st.success("✅ Đã tạo xong! Xem trước bên dưới")
+            
+            # --- BẢN CẤY THÊM: Xử lý lưu lịch sử Full và Bắn Google Sheets ---
+            st.session_state.lich_su_full.append(final_data)
+            
+            msg_gsheets = ""
+            if bat_gsheets and link_gsheets:
+                row_data = [so_phieu_thuc_te, nl, gnt, nnt, nd, vt, ch, ktnt]
+                ok, msg = ghi_len_google_sheets(link_gsheets, row_data)
+                if ok:
+                    msg_gsheets = f" - ☁️ {msg}"
+                else:
+                    st.warning(f"⚠️ {msg}")
+            # ---------------------------------------------------------------
+            
+            st.success(f"✅ Đã tạo xong! Xem trước bên dưới.{msg_gsheets}")
         else:
             st.error("❌ Thiếu file Mau_YCNT.pdf trong thư mục GitHub!")
             
     st.markdown("### 🕒 NHẬT KÝ ĐÃ GỬI")
+    
+    # --- BẢN CẤY THÊM: Nút tải file CSV hiện ra nếu có dữ liệu ---
+    if len(st.session_state.lich_su_full) > 0:
+        st.download_button(
+            label="📥 TẢI FILE EXCEL LỊCH SỬ (CSV)",
+            data=tao_file_excel().encode('utf-8'),
+            file_name=f"LichSu_YCNT_{datetime.now().strftime('%d%m%Y')}.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+    # -------------------------------------------------------------
+
     with st.container(height=300):
         if len(st.session_state.lich_su) == 0:
             st.caption("Chưa xuất phiếu nào...")
