@@ -47,7 +47,7 @@ def ghi_len_google_sheets(url_sheet, data_row):
         client = gspread.authorize(creds)
         sheet = client.open_by_url(url_sheet).sheet1
         
-        # --- SỬA TẠI ĐÂY: Đảm bảo data_row là list và ghi đúng hàng ---
+        # Ghi dữ liệu chuẩn theo hàng/cột
         sheet.append_row(data_row, value_input_option='RAW')
         return True, "Đồng bộ thành công!"
     except Exception as e:
@@ -62,12 +62,17 @@ def create_final_pdf(d):
     packet = io.BytesIO()
     can = canvas.Canvas(packet)
     
+    # --- CHỈ SỬA CHỖ NÀY: ĐỔI SANG FONT TIMES NEW ROMAN ---
     font_name = 'Helvetica'
-    if os.path.exists("Arial.ttf"):
+    if os.path.exists("times.ttf"):
+        pdfmetrics.registerFont(TTFont('Times-New-Roman', 'times.ttf'))
+        font_name = 'Times-New-Roman'
+    elif os.path.exists("Arial.ttf"):
         pdfmetrics.registerFont(TTFont('Arial-VN', 'Arial.ttf'))
         font_name = 'Arial-VN'
+    # ----------------------------------------------------
     
-    def in_chu_mm(x_mm, y_mm, text, max_width_mm, font_size=11, khoang_cach_dong_mm=5.0):
+    def in_chu_mm(x_mm, y_mm, text, max_width_mm, font_size=10, khoang_cach_dong_mm=5.0):
         if not text: return y_mm 
         can.setFont(font_name, font_size)
         y = y_mm * mm
@@ -96,13 +101,13 @@ def create_final_pdf(d):
     in_chu_mm(x_mm=163.0, y_mm=242.5, text=d['stt'], max_width_mm=40) 
     in_chu_mm(x_mm=148.0, y_mm=228, text=d['nl'], max_width_mm=40)  
     so_tt_ngan = d['stt'].split('/')[0] if '/' in d['stt'] else d['stt']
-    in_chu_mm(x_mm=22.0, y_mm=204.0, text=so_tt_ngan, max_width_mm=15) 
+    in_chu_mm(x_mm=24.0, y_mm=204.0, text=so_tt_ngan, max_width_mm=15) 
     y_sau_noi_dung = in_chu_mm(x_mm=35.0, y_mm=212.0, text=d['nd'], max_width_mm=72) 
     in_chu_mm(x_mm=35.0, y_mm=y_sau_noi_dung - 1.0, text=f" {d['vt']}", max_width_mm=72) 
     in_chu_mm(x_mm=116.0, y_mm=212.0, text=d['gnt'], max_width_mm=15) 
     in_chu_mm(x_mm=112.0, y_mm=200.0, text=d['nnt'], max_width_mm=15) 
     in_chu_mm(x_mm=137.0, y_mm=212.0, text=d['ktnt'], max_width_mm=35) 
-    in_chu_mm(x_mm=130.0, y_mm=152.0, text=d['ch'], max_width_mm=50, font_size=12) 
+    in_chu_mm(x_mm=130.0, y_mm=152.0, text=d['ch'], max_width_mm=50, font_size=10) 
 
     can.save()
     packet.seek(0)
@@ -124,7 +129,7 @@ with col_nhap:
     with st.expander("⚡ NHẬP NHANH TỪ ZALO", expanded=False):
         fast_txt = st.text_area("📋 Dán nội dung Zalo vào đây:", height=100, label_visibility="collapsed")
 
-    data = {"nl": datetime.now().strftime("%d/%m/%Y"), "gnt": "08:30", "nnt": "", "nd": "", "vt": "", "ch": "Nguyễn Hữu Biên", "ktnt": "Nguyễn Văn A"}
+    data = {"nl": datetime.now().strftime("%d/%m/%Y"), "gnt": "08:30", "nnt": "", "nd": "", "vt": "", "ch": "Nguyễn Hữu Biên", "ktnt": "Bùi Văn Năng 0935538496"}
 
     if fast_txt:
         try:
@@ -189,36 +194,20 @@ with col_nhap:
             
             msg_gsheets = ""
             if bat_gsheets and link_gsheets:
-                # --- SỬA TẠI ĐÂY: Tạo row chuẩn danh sách ---
                 row_data = [stt, nl, gnt, nnt, nd, vt, ch, ktnt]
                 ok, msg = ghi_len_google_sheets(link_gsheets, row_data)
                 if ok: msg_gsheets = f" - ☁️ {msg}"
                 else: st.warning(f"⚠️ {msg}")
             
             st.success(f"✅ Đã tạo xong!{msg_gsheets}")
-        else:
-            st.error("❌ Thiếu file Mau_YCNT.pdf trong thư mục GitHub!")
-            
-    st.markdown("### 🕒 NHẬT KÝ ĐÃ GỬI")
-    if len(st.session_state.lich_su_full) > 0:
-        st.download_button(label="📥 TẢI FILE EXCEL LỊCH SỬ (CSV)", data=tao_file_excel().encode('utf-8'), file_name=f"LichSu_YCNT_{datetime.now().strftime('%d%m%Y')}.csv", mime="text/csv", use_container_width=True)
-
-    with st.container(height=300):
-        if len(st.session_state.lich_su) == 0: st.caption("Chưa xuất phiếu nào...")
-        else:
-            for item in st.session_state.lich_su:
-                st.markdown(f"**Phiếu {item['stt']}** - {item['ngay']}")
-                st.caption(f"{item['nd']}")
-                st.divider()
+        else: st.error("❌ Thiếu file Mau_YCNT.pdf!")
 
 with col_xem:
     st.markdown("### 👁️ XEM TRƯỚC PDF")
     if st.session_state.pdf_xuat:
-        st.download_button(label=f"📥 TẢI XUỐNG {st.session_state.ten_file_pdf}", data=st.session_state.pdf_xuat, file_name=st.session_state.ten_file_pdf, mime="application/pdf", use_container_width=True)
-        if st.button("🔄 CHUYỂN SANG PHIẾU TIẾP THEO", use_container_width=True):
+        st.download_button(label=f"📥 TẢI PDF {stt.split('/')[0]}", data=st.session_state.pdf_xuat, file_name=f"YCNT_{stt.split('/')[0]}.pdf", mime="application/pdf", use_container_width=True)
+        if st.button("🔄 PHIẾU TIẾP THEO", use_container_width=True):
             st.session_state.stt_num += 1
             st.session_state.pdf_xuat = None
             st.rerun()
-        st.markdown("<br>", unsafe_allow_html=True)
         hien_thi_pdf(st.session_state.pdf_xuat)
-    else: st.info("Bấm 'Xuất PDF & Xem trước' để hiển thị nội dung tại đây.")
