@@ -38,7 +38,6 @@ with st.sidebar:
             "noi_dung": (35.0, 212.0), "dia_diem": (35.0, 207.0), "gio_nt": (116.0, 212.0),
             "ngay_nt": (112.0, 200.0), "ten_kt": (137.0, 212.0), "ten_cht": (130.0, 152.0)
         }
-        
     elif du_an_chon == "Dự án Quảng Nam":
         ma_ban = "QN/2026"; file_mau = "Mau_QuangNam.pdf"; cht_mac_dinh = "Trần Văn A"; kt_mac_dinh = "Kỹ thuật QN"; link_sheet_mac_dinh = "LINK_SHEET_QUANG_NAM"
         p = {
@@ -46,7 +45,6 @@ with st.sidebar:
             "noi_dung": (38.0, 210.0), "dia_diem": (38.0, 205.0), "gio_nt": (114.0, 210.0),
             "ngay_nt": (110.0, 198.0), "ten_kt": (135.0, 210.0), "ten_cht": (128.0, 150.0)
         }
-    
     else:
         ma_ban = "HUE/2026"; file_mau = "Mau_Hue.pdf"; cht_mac_dinh = "Lê Văn C"; kt_mac_dinh = "Kỹ thuật Huế"; link_sheet_mac_dinh = "LINK_SHEET_HUẾ"
         p = { "so_phieu": (163.0, 242.5), "ngay_gui": (148.0, 228.0), "stt_bang": (24.0, 204.0), "noi_dung": (35.0, 212.0), "dia_diem": (35.0, 207.0), "gio_nt": (116.0, 212.0), "ngay_nt": (112.0, 200.0), "ten_kt": (137.0, 212.0), "ten_cht": (130.0, 152.0) }
@@ -65,23 +63,28 @@ if st.session_state.lich_su_full:
         st.session_state.stt_num = max(danh_sach_so) + 1
 
 # ==========================================
-# --- HÀM XỬ LÝ (SỬA LỖI TRUYỀN THAM SỐ) ---
+# --- HÀM XỬ LÝ CHUẨN (ĐÃ SỬA LỖI) ---
 # ==========================================
 def ghi_len_google_sheets(url_sheet, data_row):
     try:
         import gspread
         from google.oauth2.service_account import Credentials
         if "gcp_service_account" not in st.secrets:
-            return False, "Chưa cài mã API Google trong phần Secrets."
+            return False, "Thiếu cấu hình API trong Secrets."
         
+        # Sửa lỗi truyền tham số bằng cách tách rõ Scopes
         credentials_dict = dict(st.secrets["gcp_service_account"])
-        # THÊM 'scopes=' VÀO ĐÂY ĐỂ SỬA LỖI ÔNG GỬI
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = Credentials.from_service_account_info(credentials_dict, scopes=scopes)
         
-        gspread.authorize(creds).open_by_url(url_sheet).sheet1.append_row(data_row, value_input_option='RAW')
+        # Tách client để tránh lỗi 'tuple' object has no attribute 'open_by_url'
+        gc = gspread.authorize(creds)
+        sh = gc.open_by_url(url_sheet)
+        sh.sheet1.append_row(data_row, value_input_option='RAW')
+        
         return True, "Đồng bộ thành công!"
-    except Exception as e: return False, str(e)
+    except Exception as e: 
+        return False, f"Lỗi: {str(e)}"
 
 def create_final_pdf(d, file_path, pos):
     packet = io.BytesIO()
