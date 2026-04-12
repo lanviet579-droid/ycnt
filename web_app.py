@@ -12,7 +12,7 @@ st.set_page_config(page_title="HỆ THỐNG YCNT - MR BIEN", page_icon="📄", l
 
 st.markdown("### 📄 gửi YCNT Đa Dự Án-Đổi mẫu LH Bien 0903585579")
 
-# --- KHỞI TẠO BỘ NHỚ (LOGIC GỐC) ---
+# --- KHỞI TẠO BỘ NHỚ ---
 if 'stt_num' not in st.session_state:
     st.session_state.stt_num = 1
 if 'pdf_xuat' not in st.session_state:
@@ -63,7 +63,7 @@ if st.session_state.lich_su_full:
         st.session_state.stt_num = max(danh_sach_so) + 1
 
 # ==========================================
-# --- HÀM XỬ LÝ CHUẨN (ĐÃ SỬA LỖI) ---
+# --- HÀM XỬ LÝ CHUẨN (FIX LỖI NHẢY NGANG) ---
 # ==========================================
 def ghi_len_google_sheets(url_sheet, data_row):
     try:
@@ -72,15 +72,18 @@ def ghi_len_google_sheets(url_sheet, data_row):
         if "gcp_service_account" not in st.secrets:
             return False, "Thiếu cấu hình API trong Secrets."
         
-        # Sửa lỗi truyền tham số bằng cách tách rõ Scopes
+        # 1. Thiết lập xác thực
         credentials_dict = dict(st.secrets["gcp_service_account"])
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = Credentials.from_service_account_info(credentials_dict, scopes=scopes)
         
-        # Tách client để tránh lỗi 'tuple' object has no attribute 'open_by_url'
+        # 2. Kết nối và mở Sheet (Tách riêng để tránh lỗi tuple)
         gc = gspread.authorize(creds)
         sh = gc.open_by_url(url_sheet)
-        sh.sheet1.append_row(data_row, value_input_option='RAW')
+        worksheet = sh.get_worksheet(0) # Lấy trang tính đầu tiên
+        
+        # 3. Ghi hàng mới (data_row là một list, append_row sẽ tự xuống dòng)
+        worksheet.append_row(data_row, value_input_option='RAW')
         
         return True, "Đồng bộ thành công!"
     except Exception as e: 
@@ -101,8 +104,12 @@ def create_final_pdf(d, file_path, pos):
             dong = ""
             for tu in doan.split(' '):
                 if pdfmetrics.stringWidth(dong + tu + " ", font_name, size) <= w*mm: dong += tu + " "
-                else: can.drawString(x_pt, y_pt, dong.strip()); y_pt -= 5*mm; dong = tu + " "
-            can.drawString(x_pt, y_pt, dong.strip()); y_pt -= 5*mm
+                else: 
+                    can.drawString(x_pt, y_pt, dong.strip())
+                    y_pt -= 5*mm
+                    dong = tu + " "
+            can.drawString(x_pt, y_pt, dong.strip())
+            y_pt -= 5*mm
 
     in_chu(pos["so_phieu"][0], pos["so_phieu"][1], d['stt'], 40)
     in_chu(pos["ngay_gui"][0], pos["ngay_gui"][1], d['nl'], 40)
@@ -170,13 +177,15 @@ with col_nhap:
         link_hien_tai = st.text_input("Link Sheet đang dùng:", value=link_sheet_mac_dinh)
 
     if st.button("🔥 XUẤT PDF & LƯU SHEETS", use_container_width=True, type="primary"):
-        f_data = {"stt": stt_full, "nl": nl, "gnt": gnt, "nnt": nnt, "nd": nd, "vt": vt, "ch": ch, "ktnt": ktnt}
-        pdf_out = create_final_pdf(f_data, file_mau, p)
+        # Tạo hàng dữ liệu chuẩn để ghi vào Sheets
+        row_to_save = [stt_full, nl, gnt, nnt, nd, vt, ch, ktnt]
+        
+        pdf_out = create_final_pdf({"stt": stt_full, "nl": nl, "gnt": gnt, "nnt": nnt, "nd": nd, "vt": vt, "ch": ch, "ktnt": ktnt}, file_mau, p)
         if pdf_out:
             st.session_state.pdf_xuat = pdf_out
-            st.session_state.lich_su_full.append(f_data)
+            st.session_state.lich_su_full.append({"stt": stt_full}) # Lưu lịch sử để nhảy số
             if bat_gs:
-                ok, msg = ghi_len_google_sheets(link_hien_tai, [stt_full, nl, gnt, nnt, nd, vt, ch, ktnt])
+                ok, msg = ghi_len_google_sheets(link_hien_tai, row_to_save)
                 if ok: st.success(f"✅ Đã lưu vào Sheets!")
                 else: st.error(f"Lỗi: {msg}")
         else: st.error(f"❌ Thiếu file {file_mau} trên GitHub!")
