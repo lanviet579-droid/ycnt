@@ -10,9 +10,9 @@ from datetime import datetime, timedelta
 # Cấu hình giao diện Wide
 st.set_page_config(page_title="HỆ THỐNG YCNT PRO - MR BIEN", page_icon="📄", layout="wide")
 
-st.markdown("### 📄App gửi YCNT Đa Dự Án ĐỔI MẪU LH Bien 0903585579")
+st.markdown("### 📄 App gửi YCNT Đa Dự Án - LH Bien 0903585579")
 
-# --- KHỞI TẠO BỘ NHỚ ---
+# --- KHỞI TẠO BỘ NHỚ (LOGIC GỐC) ---
 if 'stt_num' not in st.session_state:
     st.session_state.stt_num = 1
 if 'pdf_xuat' not in st.session_state:
@@ -32,36 +32,24 @@ with st.sidebar:
         file_mau = "Mau_YCNT.pdf"
         cht_mac_dinh = "Nguyễn Hữu Biên"
         kt_mac_dinh = "Bùi Văn Năng 0935538496"
-        link_sheet = "https://docs.google.com/spreadsheets/d/1r7SJ64Ht5Tnrg3mmiq0eSYhX7OhKNaD7kN1KJOoFtuQ/edit?gid=0#gid=0"
-        # TỌA ĐỘ CHI TIẾT ĐẾN TỪNG Ô (Ông chỉnh số ở đây)
+        link_sheet_mac_dinh = "https://docs.google.com/spreadsheets/d/1r7SJ64Ht5Tnrg3mmiq0eSYhX7OhKNaD7kN1KJOoFtuQ/edit?gid=0#gid=0"
+        # TỌA ĐỘ CHI TIẾT (Ông chỉnh số ở đây)
         p = {
-            "so_phieu": (163.0, 242.5),  # Số phiếu góc trên phải
-            "ngay_gui": (148.0, 228.0),  # Ngày gửi phiếu
-            "stt_bang": (24.0, 204.0),   # Số TT trong bảng
-            "noi_dung": (35.0, 212.0),   # Nội dung nghiệm thu
-            "dia_diem": (35.0, 207.0),   # Vị trí/Địa điểm
-            "gio_nt": (116.0, 212.0),    # Giờ nghiệm thu
-            "ngay_nt": (112.0, 200.0),   # Ngày nghiệm thu
-            "ten_kt": (137.0, 212.0),    # Kỹ thuật
-            "ten_cht": (130.0, 152.0)    # Chỉ huy trưởng
+            "so_phieu": (163.0, 242.5), "ngay_gui": (148.0, 228.0), "stt_bang": (24.0, 204.0),
+            "noi_dung": (35.0, 212.0), "dia_diem": (35.0, 207.0), "gio_nt": (116.0, 212.0),
+            "ngay_nt": (112.0, 200.0), "ten_kt": (137.0, 212.0), "ten_cht": (130.0, 152.0)
         }
         
     elif du_an_chon == "Dự án Quảng Nam":
-        ma_ban = "QN/2026"
-        file_mau = "Mau_QuangNam.pdf"
-        cht_mac_dinh = "Trần Văn A"
-        kt_mac_dinh = "Nguyễn Văn B 0905xxxxxx"
-        link_sheet = "LINK_SHEET_QUANG_NAM"
+        ma_ban = "QN/2026"; file_mau = "Mau_QuangNam.pdf"; cht_mac_dinh = "Trần Văn A"; kt_mac_dinh = "Kỹ thuật QN"; link_sheet_mac_dinh = "LINK_SHEET_QUANG_NAM"
         p = {
-            "so_phieu": (160.0, 240.0), "ngay_gui": (145.0, 225.0),
-            "stt_bang": (22.0, 202.0), "noi_dung": (38.0, 210.0),
-            "dia_diem": (38.0, 205.0), "gio_nt": (114.0, 210.0),
-            "ngay_nt": (110.0, 198.0), "ten_kt": (135.0, 210.0),
-            "ten_cht": (128.0, 150.0)
+            "so_phieu": (160.0, 240.0), "ngay_gui": (145.0, 225.0), "stt_bang": (22.0, 202.0),
+            "noi_dung": (38.0, 210.0), "dia_diem": (38.0, 205.0), "gio_nt": (114.0, 210.0),
+            "ngay_nt": (110.0, 198.0), "ten_kt": (135.0, 210.0), "ten_cht": (128.0, 150.0)
         }
     
     else:
-        ma_ban = "HUE/2026"; file_mau = "Mau_Hue.pdf"; cht_mac_dinh = "Lê Văn C"; kt_mac_dinh = "Phạm D"; link_sheet = "LINK_HUẾ"
+        ma_ban = "HUE/2026"; file_mau = "Mau_Hue.pdf"; cht_mac_dinh = "Lê Văn C"; kt_mac_dinh = "Kỹ thuật Huế"; link_sheet_mac_dinh = "LINK_SHEET_HUẾ"
         p = { "so_phieu": (163.0, 242.5), "ngay_gui": (148.0, 228.0), "stt_bang": (24.0, 204.0), "noi_dung": (35.0, 212.0), "dia_diem": (35.0, 207.0), "gio_nt": (116.0, 212.0), "ngay_nt": (112.0, 200.0), "ten_kt": (137.0, 212.0), "ten_cht": (130.0, 152.0) }
 
 # ==========================================
@@ -78,7 +66,7 @@ if st.session_state.lich_su_full:
         st.session_state.stt_num = max(danh_sach_so) + 1
 
 # ==========================================
-# --- CÁC HÀM XỬ LÝ GỐC ---
+# --- HÀM XỬ LÝ (GIỮ NGUYÊN LOGIC) ---
 # ==========================================
 def ghi_len_google_sheets(url_sheet, data_row):
     try:
@@ -107,16 +95,13 @@ def create_final_pdf(d, file_path, pos):
                 else: can.drawString(x_pt, y_pt, dong.strip()); y_pt -= 5*mm; dong = tu + " "
             can.drawString(x_pt, y_pt, dong.strip()); y_pt -= 5*mm
 
-    # IN THEO TỌA ĐỘ TÁCH RỜI (DÀN HÀNG NGANG ĐỦ Ý ÔNG)
+    # In theo tọa độ chi tiết
     in_chu(pos["so_phieu"][0], pos["so_phieu"][1], d['stt'], 40)
     in_chu(pos["ngay_gui"][0], pos["ngay_gui"][1], d['nl'], 40)
-    
     so_n = d['stt'].split('/')[0] if '/' in d['stt'] else d['stt']
     in_chu(pos["stt_bang"][0], pos["stt_bang"][1], so_n, 15)
-    
     in_chu(pos["noi_dung"][0], pos["noi_dung"][1], d['nd'], 72)
     in_chu(pos["dia_diem"][0], pos["dia_diem"][1], d['vt'], 72)
-    
     in_chu(pos["gio_nt"][0], pos["gio_nt"][1], d['gnt'], 15)
     in_chu(pos["ngay_nt"][0], pos["ngay_nt"][1], d['nnt'], 15)
     in_chu(pos["ten_kt"][0], pos["ten_kt"][1], d['ktnt'], 35)
@@ -125,14 +110,12 @@ def create_final_pdf(d, file_path, pos):
     can.save(); packet.seek(0)
     if not os.path.exists(file_path): return None
     reader = PdfReader(open(file_path, "rb")); writer = PdfWriter()
-    page = reader.pages[0]; page.merge_page(PdfReader(packet).pages[0])
-    writer.add_page(page)
+    page = reader.pages[0]; page.merge_page(PdfReader(packet).pages[0]); writer.add_page(page)
     for i in range(1, len(reader.pages)): writer.add_page(reader.pages[i])
-    out = io.BytesIO(); writer.write(out)
-    return out.getvalue()
+    out = io.BytesIO(); writer.write(out); return out.getvalue()
 
 # ==========================================
-# --- GIAO DIỆN NHẬP LIỆU ---
+# --- GIAO DIỆN CHÍNH ---
 # ==========================================
 col_nhap, col_xem = st.columns([1.2, 1])
 
@@ -140,7 +123,7 @@ with col_nhap:
     fast_txt = st.text_area("📋 Dán nội dung Zalo:", height=100)
     data = {"nl": datetime.now().strftime("%d/%m/%Y"), "gnt": "08:30", "nnt": "", "nd": "", "vt": "", "ch": cht_mac_dinh, "ktnt": kt_mac_dinh}
     
-    if fast_txt:
+    if fast_txt: # Logic Zalo giữ nguyên
         try:
             for p_zalo in fast_txt.split(";"):
                 if ":" in p_zalo:
@@ -152,7 +135,7 @@ with col_nhap:
                             data["nl"] = (dt - timedelta(days=1)).strftime("%d/%m/%Y")
                         except: pass
                     elif "Giờ NT" in k: data["gnt"] = v
-                    elif "Địa điểm" in k or "Vị trí" in k: data["vt"] = v
+                    elif "Vị trí" in k or "Địa điểm" in k: data["vt"] = v
                     elif "Nội dung" in k: data["nd"] = v
                     elif "CHT" in k: data["ch"] = v
                     elif "KT" in k: data["ktnt"] = v
@@ -162,8 +145,7 @@ with col_nhap:
     c1, c2 = st.columns(2)
     with c1:
         stt_input = st.number_input("Số thứ tự", value=st.session_state.stt_num, step=1)
-        if stt_input != st.session_state.stt_num:
-            st.session_state.stt_num = stt_input; st.rerun()
+        if stt_input != st.session_state.stt_num: st.session_state.stt_num = stt_input; st.rerun()
         stt_full = st.text_input("STT đầy đủ", value=f"{st.session_state.stt_num:02d}/{ma_ban}")
         gnt = st.text_input("Giờ NT", value=data["gnt"])
         ch = st.text_input("Chỉ huy trưởng", value=data["ch"])
@@ -175,14 +157,21 @@ with col_nhap:
     nd = st.text_area("Nội dung", value=data["nd"], height=80)
     vt = st.text_area("Vị trí", value=data["vt"], height=80)
     
+    # --- HIỆN LẠI Ô LINK GOOGLE SHEETS ---
+    with st.expander("⚙️ CẤU HÌNH GOOGLE SHEETS", expanded=True):
+        bat_gs = st.checkbox("Bật tự động lưu", value=True)
+        link_hien_tai = st.text_input("Link Sheet đang dùng:", value=link_sheet_mac_dinh)
+
     if st.button("🔥 XUẤT PDF & LƯU SHEETS", use_container_width=True, type="primary"):
         f_data = {"stt": stt_full, "nl": nl, "gnt": gnt, "nnt": nnt, "nd": nd, "vt": vt, "ch": ch, "ktnt": ktnt}
         pdf_out = create_final_pdf(f_data, file_mau, p)
         if pdf_out:
             st.session_state.pdf_xuat = pdf_out
             st.session_state.lich_su_full.append(f_data)
-            ghi_len_google_sheets(link_sheet, [stt_full, nl, gnt, nnt, nd, vt, ch, ktnt])
-            st.success(f"✅ Đã lưu vào Sheets {du_an_chon}!")
+            if bat_gs:
+                ok, msg = ghi_len_google_sheets(link_hien_tai, [stt_full, nl, gnt, nnt, nd, vt, ch, ktnt])
+                if ok: st.success(f"✅ Đã lưu vào Sheets!")
+                else: st.error(f"Lỗi: {msg}")
         else: st.error(f"❌ Thiếu file {file_mau} trên GitHub!")
 
 with col_xem:
