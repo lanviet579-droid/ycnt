@@ -33,7 +33,6 @@ with st.sidebar:
         cht_mac_dinh = "Nguyễn Hữu Biên"
         kt_mac_dinh = "Bùi Văn Năng 0935538496"
         link_sheet_mac_dinh = "https://docs.google.com/spreadsheets/d/1mvyOY5gTL813M2Uf8AuamfH2A7rrbJj4C5v1EhArnB4/edit?gid=0#gid=0"
-        # TỌA ĐỘ CHI TIẾT (Ông chỉnh số ở đây)
         p = {
             "so_phieu": (163.0, 242.5), "ngay_gui": (148.0, 228.0), "stt_bang": (24.0, 204.0),
             "noi_dung": (35.0, 212.0), "dia_diem": (35.0, 207.0), "gio_nt": (116.0, 212.0),
@@ -66,13 +65,20 @@ if st.session_state.lich_su_full:
         st.session_state.stt_num = max(danh_sach_so) + 1
 
 # ==========================================
-# --- HÀM XỬ LÝ (GIỮ NGUYÊN LOGIC) ---
+# --- HÀM XỬ LÝ (SỬA LỖI TRUYỀN THAM SỐ) ---
 # ==========================================
 def ghi_len_google_sheets(url_sheet, data_row):
     try:
         import gspread
         from google.oauth2.service_account import Credentials
-        creds = Credentials.from_service_account_info(dict(st.secrets["gcp_service_account"]), ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"])
+        if "gcp_service_account" not in st.secrets:
+            return False, "Chưa cài mã API Google trong phần Secrets."
+        
+        credentials_dict = dict(st.secrets["gcp_service_account"])
+        # THÊM 'scopes=' VÀO ĐÂY ĐỂ SỬA LỖI ÔNG GỬI
+        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        creds = Credentials.from_service_account_info(credentials_dict, scopes=scopes)
+        
         gspread.authorize(creds).open_by_url(url_sheet).sheet1.append_row(data_row, value_input_option='RAW')
         return True, "Đồng bộ thành công!"
     except Exception as e: return False, str(e)
@@ -95,7 +101,6 @@ def create_final_pdf(d, file_path, pos):
                 else: can.drawString(x_pt, y_pt, dong.strip()); y_pt -= 5*mm; dong = tu + " "
             can.drawString(x_pt, y_pt, dong.strip()); y_pt -= 5*mm
 
-    # In theo tọa độ chi tiết
     in_chu(pos["so_phieu"][0], pos["so_phieu"][1], d['stt'], 40)
     in_chu(pos["ngay_gui"][0], pos["ngay_gui"][1], d['nl'], 40)
     so_n = d['stt'].split('/')[0] if '/' in d['stt'] else d['stt']
@@ -123,7 +128,7 @@ with col_nhap:
     fast_txt = st.text_area("📋 Dán nội dung Zalo:", height=100)
     data = {"nl": datetime.now().strftime("%d/%m/%Y"), "gnt": "08:30", "nnt": "", "nd": "", "vt": "", "ch": cht_mac_dinh, "ktnt": kt_mac_dinh}
     
-    if fast_txt: # Logic Zalo giữ nguyên
+    if fast_txt:
         try:
             for p_zalo in fast_txt.split(";"):
                 if ":" in p_zalo:
@@ -157,7 +162,6 @@ with col_nhap:
     nd = st.text_area("Nội dung", value=data["nd"], height=80)
     vt = st.text_area("Vị trí", value=data["vt"], height=80)
     
-    # --- HIỆN LẠI Ô LINK GOOGLE SHEETS ---
     with st.expander("⚙️ CẤU HÌNH GOOGLE SHEETS", expanded=True):
         bat_gs = st.checkbox("Bật tự động lưu", value=True)
         link_hien_tai = st.text_input("Link Sheet đang dùng:", value=link_sheet_mac_dinh)
