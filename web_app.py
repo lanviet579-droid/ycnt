@@ -8,9 +8,9 @@ from reportlab.lib.units import mm
 from datetime import datetime, timedelta
 
 # Cấu hình giao diện Wide
-st.set_page_config(page_title="HỆ THỐNG YCNT PRO - MR BIEN", page_icon="📄", layout="wide")
+st.set_page_config(page_title="HỆ THỐNG YCNT - MR BIEN", page_icon="📄", layout="wide")
 
-st.markdown("### 📄 App gửi YCNT Đa Dự Án - LH Bien 0903585579")
+st.markdown("### 📄 gửi YCNT Đa Dự Án-Đổi mẫu LH Bien 0903585579")
 
 # --- KHỞI TẠO BỘ NHỚ (LOGIC GỐC) ---
 if 'stt_num' not in st.session_state:
@@ -32,7 +32,7 @@ with st.sidebar:
         file_mau = "Mau_YCNT.pdf"
         cht_mac_dinh = "Nguyễn Hữu Biên"
         kt_mac_dinh = "Bùi Văn Năng 0935538496"
-        link_sheet_mac_dinh = "https://docs.google.com/spreadsheets/d/1r7SJ64Ht5Tnrg3mmiq0eSYhX7OhKNaD7kN1KJOoFtuQ/edit?gid=0#gid=0"
+        link_sheet_mac_dinh = "https://docs.google.com/spreadsheets/d/1mvyOY5gTL813M2Uf8AuamfH2A7rrbJj4C5v1EhArnB4/edit?gid=0#gid=0"
         # TỌA ĐỘ CHI TIẾT (Ông chỉnh số ở đây)
         p = {
             "so_phieu": (163.0, 242.5), "ngay_gui": (148.0, 228.0), "stt_bang": (24.0, 204.0),
