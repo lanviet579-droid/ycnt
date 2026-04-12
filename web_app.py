@@ -63,7 +63,7 @@ if st.session_state.lich_su_full:
         st.session_state.stt_num = max(danh_sach_so) + 1
 
 # ==========================================
-# --- HÀM XỬ LÝ CHUẨN (FIX LỖI NHẢY NGANG) ---
+# --- HÀM XỬ LÝ (FIX CHẾT LỖI NHẢY NGANG) ---
 # ==========================================
 def ghi_len_google_sheets(url_sheet, data_row):
     try:
@@ -77,13 +77,15 @@ def ghi_len_google_sheets(url_sheet, data_row):
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = Credentials.from_service_account_info(credentials_dict, scopes=scopes)
         
-        # 2. Kết nối và mở Sheet (Tách riêng để tránh lỗi tuple)
+        # 2. Kết nối
         gc = gspread.authorize(creds)
         sh = gc.open_by_url(url_sheet)
-        worksheet = sh.get_worksheet(0) # Lấy trang tính đầu tiên
+        worksheet = sh.get_worksheet(0)
         
-        # 3. Ghi hàng mới (data_row là một list, append_row sẽ tự xuống dòng)
-        worksheet.append_row(data_row, value_input_option='RAW')
+        # 3. GHI DỮ LIỆU - DÙNG append_rows (SỐ NHIỀU) VÀ BỌC TRONG NGOẶC TRÁNH NHẢY NGANG
+        # values phải là list của list: [[ô1, ô2, ô3...]]
+        values = [data_row]
+        worksheet.append_rows(values, value_input_option='RAW')
         
         return True, "Đồng bộ thành công!"
     except Exception as e: 
@@ -177,14 +179,15 @@ with col_nhap:
         link_hien_tai = st.text_input("Link Sheet đang dùng:", value=link_sheet_mac_dinh)
 
     if st.button("🔥 XUẤT PDF & LƯU SHEETS", use_container_width=True, type="primary"):
-        # Tạo hàng dữ liệu chuẩn để ghi vào Sheets
-        row_to_save = [stt_full, nl, gnt, nnt, nd, vt, ch, ktnt]
+        # CHUẨN HÓA DỮ LIỆU TRƯỚC KHI GỬI
+        row_to_save = [str(stt_full), str(nl), str(gnt), str(nnt), str(nd), str(vt), str(ch), str(ktnt)]
         
         pdf_out = create_final_pdf({"stt": stt_full, "nl": nl, "gnt": gnt, "nnt": nnt, "nd": nd, "vt": vt, "ch": ch, "ktnt": ktnt}, file_mau, p)
         if pdf_out:
             st.session_state.pdf_xuat = pdf_out
-            st.session_state.lich_su_full.append({"stt": stt_full}) # Lưu lịch sử để nhảy số
+            st.session_state.lich_su_full.append({"stt": stt_full}) 
             if bat_gs:
+                # Gọi hàm với mảng đã chuẩn hóa
                 ok, msg = ghi_len_google_sheets(link_hien_tai, row_to_save)
                 if ok: st.success(f"✅ Đã lưu vào Sheets!")
                 else: st.error(f"Lỗi: {msg}")
