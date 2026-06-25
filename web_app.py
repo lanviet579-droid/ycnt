@@ -7,12 +7,29 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.units import mm  
 from datetime import datetime, timedelta
 
+# ==========================================
+# 🛑 CẤU HÌNH BẢO MẬT & KÍCH HOẠT TÀI KHOẢN
+# ==========================================
+# Cứu cánh của ông anh nằm ở đây:
+# - Để False: Khóa app, bắt gia hạn.
+# - Để True: Mở khóa app sử dụng bình thường.
+APP_ACTIVE = False 
+
 # Cấu hình giao diện Wide
 st.set_page_config(page_title="HỆ THỐNG YCNT - MR BIEN", page_icon="📄", layout="wide")
 
+# --- KIỂM TRA TRẠNG THÁI KÍCH HOẠT VÀO APP ---
+if not APP_ACTIVE:
+    st.error("### 🛑 THÔNG BÁO HỆ THỐNG")
+    st.info("#### Tài khoản dữ liệu của bạn đã hết hạn sử dụng.")
+    st.warning("⚠️ Vui lòng liên hệ quản trị viên (Mr. Biên - 0903.585.579) để gia hạn tài khoản dữ liệu và tiếp tục sử dụng dịch vụ. Hệ thống tạm ngưng cho đến khi được kích hoạt lại.")
+    st.stop() # Lệnh này chặn đứng toàn bộ code phía dưới, không cho chạy thêm bất kỳ dòng nào
+
+# ==========================================
+# --- KHỞI TẠO BỘ NHỚ (Chỉ chạy khi APP_ACTIVE = True) ---
+# ==========================================
 st.markdown("### 📄 gửi YCNT Đa Dự Án-Đổi mẫu LH Bien 0903585579")
 
-# --- KHỞI TẠO BỘ NHỚ ---
 if 'stt_num' not in st.session_state:
     st.session_state.stt_num = 1
 if 'pdf_xuat' not in st.session_state:
@@ -80,13 +97,8 @@ def ghi_len_google_sheets(url_sheet, data_row):
         sh = gc.open_by_url(url_sheet)
         worksheet = sh.get_worksheet(0)
         
-        # CHUẨN HÓA DỮ LIỆU THÀNH DANH SÁCH CHUỖI
         clean_row = [str(x) for x in data_row]
-        
-        # DÙNG insert_row(..., index=2) ĐỂ ĐẨY LÊN DÒNG ĐẦU DƯỚI TIÊU ĐỀ
-        # Cách này ép buộc Google Sheets phải tạo 1 hàng ngang mới cho 1 phiếu
         worksheet.insert_row(clean_row, index=2, value_input_option='USER_ENTERED')
-        
         return True, "Đồng bộ thành công!"
     except Exception as e: 
         return False, f"Lỗi: {str(e)}"
@@ -179,7 +191,6 @@ with col_nhap:
         link_hien_tai = st.text_input("Link Sheet đang dùng:", value=link_sheet_mac_dinh)
 
     if st.button("🔥 XUẤT PDF & LƯU SHEETS", use_container_width=True, type="primary"):
-        # Dữ liệu phẳng để ghi vào 1 dòng duy nhất
         row_to_save = [stt_full, nl, gnt, nnt, nd, vt, ch, ktnt]
         
         pdf_out = create_final_pdf({"stt": stt_full, "nl": nl, "gnt": gnt, "nnt": nnt, "nd": nd, "vt": vt, "ch": ch, "ktnt": ktnt}, file_mau, p)
