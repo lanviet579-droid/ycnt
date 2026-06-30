@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 # Cứu cánh của ông anh nằm ở đây:
 # - Để False: Khóa app, bắt gia hạn.
 # - Để True: Mở khóa app sử dụng bình thường.
-APP_ACTIVE = False 
+APP_ACTIVE = True 
 
 # Cấu hình giao diện Wide
 st.set_page_config(page_title="HỆ THỐNG YCNT - MR BIEN", page_icon="📄", layout="wide")
