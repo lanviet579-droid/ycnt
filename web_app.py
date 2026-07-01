@@ -45,7 +45,7 @@ with st.sidebar:
     du_an_chon = st.selectbox("Chọn dự án:", ["Dacinco - ĐNCNC", "Dự án Quảng Nam", "Dự án Huế"])
     
     if du_an_chon == "Dacinco - ĐNCNC":
-        ma_ban = "Dacinco/ĐNCNC"
+        ma_ban = "DACINCO/ĐNCNC"
         file_mau = "Mau_YCNT.pdf"
         cht_mac_dinh = "Nguyễn Hữu Biên"
         kt_mac_dinh = "Bùi Văn Năng 0935538496"
