@@ -53,7 +53,7 @@ with st.sidebar:
         p = {
             "so_phieu": (163.0, 242.5), "ngay_gui": (148.0, 228.0), "stt_bang": (24.0, 204.0),
             "noi_dung": (35.0, 212.0), "dia_diem": (35.0, 207.0), "gio_nt": (116.0, 212.0),
-            "ngay_nt": (112.0, 200.0), "ten_kt": (137.0, 212.0), "ten_cht": (130.0, 152.0)
+            "ngay_nt": (112.0, 200.0), "ten_kt": (137.0, 212.0), "ten_cht": (115.0, 152.0)
         }
     elif du_an_chon == "Dự án Quảng Nam":
         ma_ban = "QN/2026"; file_mau = "Mau_QuangNam.pdf"; cht_mac_dinh = "Trần Văn A"; kt_mac_dinh = "Kỹ thuật QN"; link_sheet_mac_dinh = "LINK_SHEET_QUANG_NAM"
