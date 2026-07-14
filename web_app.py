@@ -49,7 +49,7 @@ with st.sidebar:
         file_mau = "Mau_YCNT.pdf"
         cht_mac_dinh = "Nguyễn Hữu Biên"
         kt_mac_dinh = "Bùi Văn Năng 0935538496"
-        link_sheet_mac_dinh = "https://docs.google.com/spreadsheets/d/1mvyOY5gTL813M2Uf8AuamfH2A7rrbJj4C5v1EhArnB4/edit?gid=0#gid=0"
+        link_sheet_mac_dinh = "https://docs.google.com/spreadsheets/d/1OAUQwp50w_n2LtD8ou4c39ApJHoTRbc8ufArsvl5Az8/edit?gid=0#gid=0"
         p = {
             "so_phieu": (163.0, 242.5), "ngay_gui": (148.0, 228.0), "stt_bang": (24.0, 204.0),
             "noi_dung": (35.0, 212.0), "dia_diem": (35.0, 207.0), "gio_nt": (116.0, 212.0),
